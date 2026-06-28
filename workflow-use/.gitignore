@@ -16,6 +16,9 @@ eggs/
 .eggs/
 lib/
 lib64/
+# extension shadcn util (required for npm build)
+!extension/src/lib/
+!extension/src/lib/**
 parts/
 sdist/
 var/

@@ -11,11 +11,24 @@ fi
 # Optional: override pilot Chrome profile directory (record + replay share this path).
 # export RECORDER_USER_DATA_DIR="$HOME/.local/share/nava-workflow-profile"
 
-# Optional EC2: reuse pre-installed Playwright browsers
-# export PLAYWRIGHT_BROWSERS_PATH=/opt/nava/playwright-browsers
+# EC2: reuse pre-installed Playwright Chromium at /opt/nava/playwright-browsers
+if [[ -f /opt/nava/ec2-playwright-chromium/env.sh ]]; then
+  # shellcheck disable=SC1091
+  source /opt/nava/ec2-playwright-chromium/env.sh
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PILOT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Imprint: local data dir (sessions, emitted tools) — not ~/.imprint
+export IMPRINT_HOME="${IMPRINT_HOME:-$PILOT_ROOT/imprint-data}"
+
+# Bun (Windows Git Bash: common install locations)
+export PATH="$HOME/.pnpm-global/bun:$HOME/.bun/bin:$PATH"
+
+# Imprint compile: prefer local Claude CLI when teach/generate runs
+export IMPRINT_PROVIDER="${IMPRINT_PROVIDER:-claude}"
+
 PARENT_ENV="$(cd "$PILOT_ROOT/.." && pwd)/.env"
 if [[ -f "$PARENT_ENV" ]]; then
   set -a
