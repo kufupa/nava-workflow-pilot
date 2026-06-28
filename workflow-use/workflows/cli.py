@@ -62,18 +62,28 @@ app = typer.Typer(
 	no_args_is_help=True,
 )
 
-# Default LLM instance to None
-llm_instance: BaseChatModel
+# Default LLM instance to None (no-AI record/replay does not need Browser Use Cloud key)
+llm_instance: BaseChatModel | None = None
+page_extraction_llm: BaseChatModel | None = None
 try:
 	llm_instance = ChatBrowserUse(model='bu-latest')
 	page_extraction_llm = ChatBrowserUse(model='bu-latest')
 except Exception as e:
-	typer.secho(f'Error initializing LLM: {e}. Would you like to set your BROWSER_USE_API_KEY?', fg=typer.colors.RED)
-	set_browser_use_api_key = input('Set BROWSER_USE_API_KEY? (y/n): ')
-	if set_browser_use_api_key.lower() == 'y':
-		os.environ['BROWSER_USE_API_KEY'] = input('Enter your BROWSER_USE_API_KEY: ')
-		llm_instance = ChatBrowserUse(model='bu-latest')
-		page_extraction_llm = ChatBrowserUse(model='bu-latest')
+	if sys.stdin.isatty():
+		typer.secho(
+			f'Error initializing LLM: {e}. Would you like to set your BROWSER_USE_API_KEY?',
+			fg=typer.colors.RED,
+		)
+		set_browser_use_api_key = input('Set BROWSER_USE_API_KEY? (y/n): ')
+		if set_browser_use_api_key.lower() == 'y':
+			os.environ['BROWSER_USE_API_KEY'] = input('Enter your BROWSER_USE_API_KEY: ')
+			llm_instance = ChatBrowserUse(model='bu-latest')
+			page_extraction_llm = ChatBrowserUse(model='bu-latest')
+	else:
+		typer.secho(
+			'No BROWSER_USE_API_KEY — continuing without cloud LLM (no-AI record/replay only).',
+			fg=typer.colors.YELLOW,
+		)
 
 builder_service = BuilderService(llm=llm_instance) if llm_instance else None
 # recorder_service = RecorderService() # Placeholder

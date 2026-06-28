@@ -50,3 +50,7 @@ source "$ROOT/scripts/pilot-env.sh"
 xvfb-run -a -s '-screen 0 1280x720x24' .venv/bin/python "$ROOT/scripts/recorder_smoke.py"
 
 echo "=== pilot preflight PASSED ==="
+
+echo "[bonus] record path start test"
+bash "$ROOT/scripts/ec2-test-record-start.sh"
+echo "=== record start test PASSED ==="

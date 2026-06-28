@@ -89,7 +89,9 @@ OVERLAY_FILES=(
   scripts/pilot-env.sh
   scripts/setup-ec2.sh
   scripts/ec2-verify-preflight.sh
+  scripts/ec2-test-record-start.sh
   workflow-use/extension/src/lib/utils.ts
+  workflow-use/workflows/cli.py
 )
 
 deploy_pilot() {
