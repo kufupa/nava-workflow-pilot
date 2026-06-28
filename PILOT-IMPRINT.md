@@ -22,9 +22,15 @@ bash scripts/record-imprint.sh [site] [url]
 # default: nava-test https://example.com
 ```
 
-Drive the browser. Type **`/done`** in the terminal when finished (or Ctrl+C).
+Drive the browser. Stop recording (any of these):
+
+- Type **`/done`** in the **same Git Bash terminal** (prompt on stderr after browser opens)
+- **`Ctrl+C`** in that terminal
+- **Close the Chromium window**
 
 Sessions land in `imprint-data/<site>/sessions/` (`IMPRINT_HOME`).
+
+**Windows Git Bash:** click the terminal window before typing — stdin goes to the terminal, not the browser.
 
 ## Compile later (LLM once)
 

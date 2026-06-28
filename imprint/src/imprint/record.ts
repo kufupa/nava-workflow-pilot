@@ -86,6 +86,14 @@ export async function record(opts: RecordOptions): Promise<RecordResult> {
     throw err;
   }
   console.log(`[imprint] chromium up on CDP port ${chromium.port}`);
+  if (!opts.noNarration) {
+    process.stderr.write(
+      '\n[imprint] recording — use THIS terminal to stop when done:\n' +
+        '[imprint]   /done      stop and save session\n' +
+        '[imprint]   Ctrl+C     stop and save session\n' +
+        '[imprint]   close browser window — also stops and saves\n\n',
+    );
+  }
 
   // Wait for Chromium to publish the target list, then attach to the first
   // real page tab (skip chrome-extension://). The callback must return a
@@ -333,7 +341,6 @@ export async function record(opts: RecordOptions): Promise<RecordResult> {
       }
     }
   };
-  await snapshotCookies('start');
 
   const snapshotStorage = async (label: StorageSnapshot['label']): Promise<void> => {
     try {
@@ -379,9 +386,8 @@ export async function record(opts: RecordOptions): Promise<RecordResult> {
       }
     }
   };
-  await snapshotStorage('start');
 
-  // ── Narration loop ────────────────────────────────────────────────────────
+  // ── Narration loop (stderr prompt — Git Bash / Windows TTY friendly) ───────
   let narrationOpen = !opts.noNarration;
   let rl: ReturnType<typeof createInterface> | null = null;
 
@@ -394,13 +400,15 @@ export async function record(opts: RecordOptions): Promise<RecordResult> {
 
   const narrationLoop: Promise<void> = (async () => {
     if (opts.noNarration) return;
-    rl = createInterface({ input: process.stdin, output: process.stdout, terminal: true });
-    console.log('');
-    console.log('[imprint] recording. drive the browser, narrate as you go.');
-    console.log('[imprint]   blank line   = skip without recording narration');
-    console.log('[imprint]   /done        = stop recording cleanly');
-    console.log('[imprint]   Ctrl+C       = same as /done');
-    console.log('');
+    const promptOut = process.stderr;
+    rl = createInterface({
+      input: process.stdin,
+      output: promptOut,
+      terminal: Boolean(process.stdin.isTTY),
+    });
+    promptOut.write('\n[imprint] narrate steps as you go (optional).\n');
+    promptOut.write('[imprint]   blank line = skip narration\n');
+    promptOut.write('[imprint]   /done      = stop and save\n\n');
     while (narrationOpen) {
       const reader = rl;
       if (!reader) break;
@@ -435,8 +443,6 @@ export async function record(opts: RecordOptions): Promise<RecordResult> {
     narrationOpen = false;
     rl?.close();
 
-    // Drain in-flight body fetches before closing the JSONL stream — CDP
-    // body fetch is async, late arrivals would be silently dropped.
     if (inflight.size > 0) {
       if (isDebug()) {
         console.error(`[debug] draining ${inflight.size} inflight handlers`);
@@ -444,8 +450,6 @@ export async function record(opts: RecordOptions): Promise<RecordResult> {
       await Promise.allSettled(Array.from(inflight));
     }
 
-    // Final cookie snapshot before CDP teardown — confirmation pages
-    // sometimes set fresh session cookies the replay needs.
     await snapshotCookies('end');
     await snapshotStorage('end');
 
@@ -471,8 +475,10 @@ export async function record(opts: RecordOptions): Promise<RecordResult> {
     if (opts.signal.aborted) return shutdown();
     opts.signal.addEventListener('abort', () => void shutdown());
   }
-  // If the user closes the window, wind down.
   chromium.process.once('exit', () => void shutdown());
+
+  await snapshotCookies('start');
+  await snapshotStorage('start');
 
   await narrationLoop;
   return shutdown();
