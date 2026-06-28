@@ -91,7 +91,6 @@ OVERLAY_FILES=(
   scripts/ec2-verify-preflight.sh
   scripts/ec2-test-record-start.sh
   workflow-use/extension/src/lib/utils.ts
-  workflow-use/workflows/cli.py
 )
 
 deploy_pilot() {
@@ -111,18 +110,27 @@ deploy_pilot() {
   fi
 
   local -a overlay_cmds=()
-  local f b64
+  local f b64 out status
   for f in "${OVERLAY_FILES[@]}"; do
     b64="$(b64_file "${PILOT_DIR}/${f}")"
-    overlay_cmds+=("mkdir -p $(dirname ${REMOTE_PILOT}/${f})")
-    overlay_cmds+=("echo ${b64} | base64 -d > ${REMOTE_PILOT}/${f}")
+    overlay_cmds=(
+      "mkdir -p $(dirname ${REMOTE_PILOT}/${f})"
+      "echo ${b64} | base64 -d > ${REMOTE_PILOT}/${f}"
+      "sed -i 's/\\r$//' ${REMOTE_PILOT}/${f} 2>/dev/null || true"
+    )
+    out="$(send_ssm "Overlay ${f}" 120 "${overlay_cmds[@]}")"
+    status="$(json_status "$out")"
+    if [[ "$status" != "Success" ]]; then
+      echo "overlay failed for ${f}: $status" >&2
+      echo "$out"
+      exit 1
+    fi
   done
-  overlay_cmds+=("sed -i 's/\\r$//' ${REMOTE_PILOT}/scripts/*.sh")
-  overlay_cmds+=("chmod +x ${REMOTE_PILOT}/scripts/*.sh")
-  overlay_cmds+=("chown -R ubuntu:ubuntu ${REMOTE_PILOT}")
-  overlay_cmds+=("ls -la ${REMOTE_PILOT}/scripts")
-
-  out="$(send_ssm "Overlay pilot EC2 scripts" 180 "${overlay_cmds[@]}")"
+  out="$(send_ssm "Overlay chmod" 60 \
+    "chmod +x ${REMOTE_PILOT}/scripts/*.sh" \
+    "chown -R ubuntu:ubuntu ${REMOTE_PILOT}" \
+    "ls -la ${REMOTE_PILOT}/scripts"
+  )"
   echo "$out"
   status="$(json_status "$out")"
   if [[ "$status" != "Success" ]]; then
