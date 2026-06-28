@@ -1,0 +1,10 @@
+.env
+.venv/
+**/node_modules/
+workflow-use/extension/.output/
+workflow-use/workflows/tmp/
+**/user_data_dir/
+**/user_data_dir_smoke/
+__pycache__/
+.DS_Store
+browser-use/
