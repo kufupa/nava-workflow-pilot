@@ -196,7 +196,7 @@ Extension path hardcoded in `workflow_use/recorder/service.py`:
 | Script hangs after closing browser | Fixed — session always signals completion |
 | `No module named playwright` | `uv pip install playwright` in `workflows/` |
 | `0 elements` / charmap errors | `export PYTHONUTF8=1` |
-| CLI asks for BROWSER_USE_API_KEY on import | Press `n` or set key; not needed for no-ai path |
+| CLI asks for BROWSER_USE_API_KEY on import | Press **`n`** — fixed: `n` no longer crashes with `NameError`; not needed for no-ai path |
 | Recording empty | Click **Start recording** in side panel; perform actions; click **Stop** (flushes workflow) |
 | No workflow saved | Terminal should show `WORKFLOW_UPDATE` then `RECORDING_STOPPED` before exit |
 | Replay asks to log in again | Record and replay must use same profile; check `Using pilot browser profile:` in CLI output |
