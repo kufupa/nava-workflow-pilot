@@ -174,7 +174,7 @@ Extension path hardcoded in `workflow_use/recorder/service.py`:
 
 ## Linux / Ubuntu EC2 (xRDP)
 
-1. Clone: `git clone https://github.com/aa6622/nava-workflow-pilot.git`
+1. Clone: `git clone https://github.com/kufupa/nava-workflow-pilot.git`
 2. Setup: `bash scripts/setup-linux.sh`
 3. Connect via SSM tunnel + RDP (`localhost:3390`)
 4. **Run record/replay from the xRDP desktop terminal** — not headless SSM (needs `DISPLAY`)

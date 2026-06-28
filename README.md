@@ -7,7 +7,7 @@ Teach-once / replay-many browser workflows using patched [workflow-use](https://
 Prerequisites: `git`, Node 20+, `uv`, xRDP desktop for recording (headed Chrome needs `DISPLAY`).
 
 ```bash
-git clone https://github.com/aa6622/nava-workflow-pilot.git
+git clone https://github.com/kufupa/nava-workflow-pilot.git
 cd nava-workflow-pilot
 bash scripts/setup-linux.sh
 # From xRDP terminal only:
@@ -32,7 +32,7 @@ bash scripts/record.sh
 
 | Piece | Location |
 |-------|----------|
-| Patched workflow-use | `workflow-use/` (fork: `aa6622/workflow-use` branch `nava/recorder-fixes`) |
+| Patched workflow-use | `workflow-use/` (vendored; upstream PRs to browser-use/workflow-use) |
 | Pilot scripts | `scripts/` |
 | Full guide | [PILOT.md](PILOT.md) |
 
