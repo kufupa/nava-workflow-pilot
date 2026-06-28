@@ -175,10 +175,12 @@ Extension path hardcoded in `workflow_use/recorder/service.py`:
 ## Linux / Ubuntu EC2 (xRDP)
 
 1. Clone: `git clone https://github.com/kufupa/nava-workflow-pilot.git`
-2. Setup: `bash scripts/setup-linux.sh`
+2. Setup: `bash scripts/setup-ec2.sh` (pins Playwright **1.52.0** to match `/opt/nava/playwright-browsers`)
 3. Connect via SSM tunnel + RDP (`localhost:3390`)
 4. **Run record/replay from the xRDP desktop terminal** — not headless SSM (needs `DISPLAY`)
 5. `bash scripts/record.sh` → teach → `bash scripts/replay.sh workflow-use/workflows/tmp/<file>`
+
+**Do not** run bare `playwright install` or `uv run python` on EC2 — the lockfile pulls Playwright 1.60 and looks for `chromium-1223`, which does not exist on this box. `record.sh` / `replay.sh` use `pilot-workflows.sh` + `.venv/bin/python` instead.
 
 | Issue (Linux) | Fix |
 |---------------|-----|
@@ -194,7 +196,7 @@ Extension path hardcoded in `workflow_use/recorder/service.py`:
 | Don't see extension UI | Puzzle icon → **browser-use-workflow-recorder** → side panel |
 | `Page.enable` / CDP errors during record | Fixed in pilot — re-pull; recorder no longer uses browser-use for teach |
 | Script hangs after closing browser | Fixed — session always signals completion |
-| `No module named playwright` | `uv pip install playwright` in `workflows/` |
+| Playwright "install browsers" / chromium-1223 on EC2 | **Do not** run bare `playwright install`. Use `bash scripts/setup-ec2.sh` once, then `bash scripts/record.sh` (pins 1.52.0 + `/opt/nava/playwright-browsers`) |
 | `0 elements` / charmap errors | `export PYTHONUTF8=1` |
 | CLI asks for BROWSER_USE_API_KEY on import | Press **`n`** — fixed: `n` no longer crashes with `NameError`; not needed for no-ai path |
 | Recording empty | Click **Start recording** in side panel; perform actions; click **Stop** (flushes workflow) |

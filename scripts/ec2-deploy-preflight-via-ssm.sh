@@ -87,7 +87,10 @@ b64_file() {
 # Local-only files overlaid on git clone (small — fits SSM; no 41MB tarball).
 OVERLAY_FILES=(
   scripts/pilot-env.sh
+  scripts/pilot-workflows.sh
   scripts/setup-ec2.sh
+  scripts/record.sh
+  scripts/replay.sh
   scripts/ec2-verify-preflight.sh
   scripts/ec2-test-record-start.sh
   workflow-use/extension/src/lib/utils.ts

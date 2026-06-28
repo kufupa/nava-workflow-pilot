@@ -38,15 +38,16 @@ fi
 echo "OK: chrome-mv3 present"
 
 echo "[3/4] recorder unit tests"
-cd "$ROOT/workflow-use/workflows"
+PILOT_ROOT="$ROOT"
+# shellcheck disable=SC1091
+source "$ROOT/scripts/pilot-workflows.sh"
+pilot_workflows_prepare
+cd "${PILOT_WORKFLOWS}"
 uv pip install -q pytest-asyncio
-uv run python -m pytest workflow_use/recorder/tests/ -q --asyncio-mode=auto
+.venv/bin/python -m pytest workflow_use/recorder/tests/ -q --asyncio-mode=auto
 
 echo "[4/4] recorder_smoke (headed via xvfb)"
-cd "$ROOT/workflow-use/workflows"
-uv pip install -q 'playwright==1.52.0'
-# shellcheck disable=SC1091
-source "$ROOT/scripts/pilot-env.sh"
+cd "${PILOT_WORKFLOWS}"
 xvfb-run -a -s '-screen 0 1280x720x24' .venv/bin/python "$ROOT/scripts/recorder_smoke.py"
 
 echo "=== pilot preflight PASSED ==="
