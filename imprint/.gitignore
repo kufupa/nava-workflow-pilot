@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+bun.lockb
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Captured sessions (may contain auth tokens, PII)
+**/sessions/
+
+# Live session credential caches (validated _abck jar, stealth tokens) — NEVER commit
+**/.cdp-jar.json
+**/.stealth-token.json
+
+# Teach pipeline state (local, not shareable)
+.teach-state.json
+
+# Cookies (auth state, never commit)
+cookies/
+*.cookies.json
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Test artifacts
+coverage/
+.nyc_output/
+
+# Claude Code — local-only state. Anything else under .claude/
+# (e.g. agents/, commands/, hooks/, mcp.json) is intentionally
+# tracked so it's shared with the rest of the team.
+.claude/plans/
+.claude/worktrees/
+.claude/settings.local.json
+
+# Compile agent conversation logs + claude-cli orchestration sentinels
+examples/**/.compile-log.json
+examples/**/.compile-done.json
+examples/**/.compile-give-up.json
+
+# tsc --generateTrace output (local debug artifacts)
+trace/
+.gstack/

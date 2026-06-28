@@ -1,0 +1,42 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # `bun run check` = typecheck + lint + tests + knip + madge.
+      # Same command CONTRIBUTING.md tells contributors to run before
+      # pushing, so a green local run guarantees a green CI run.
+      - name: Check (typecheck + lint + tests + dead-code)
+        run: bun run check
+
+      - name: Extract test count
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          COUNT=$(bun test 2>&1 | grep -oP '\d+(?= pass)' || echo "0")
+          echo "TEST_COUNT=$COUNT" >> "$GITHUB_ENV"
+
+      - name: Publish test count badge
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: cbd3134e06fb4fabf24aed94b251bdfd
+          filename: test-count.json
+          label: tests
+          message: ${{ env.TEST_COUNT }} passing
+          color: brightgreen

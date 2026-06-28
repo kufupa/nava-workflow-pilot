@@ -8,3 +8,6 @@ workflow-use/workflows/tmp/
 __pycache__/
 .DS_Store
 browser-use/
+imprint/node_modules/
+imprint-data/
+**/.imprint/
