@@ -551,6 +551,17 @@ async def _convert_recording_to_semantic_workflow(recording_data, description, s
 	finally:
 		await _stop_browser(browser)
 
+	# workflow-use requires a terminal extract step for load/replay (structured return value).
+	if not semantic_steps or semantic_steps[-1].get('type') not in ('extract', 'extract_page_content'):
+		semantic_steps.append(
+			{
+				'description': 'Capture final page state',
+				'type': 'extract_page_content',
+				'goal': 'Extract page title and main visible text after workflow completes',
+				'output': 'final_page',
+			}
+		)
+
 	# Build the semantic workflow
 	semantic_workflow = {
 		'workflow_analysis': 'Semantic version of recorded workflow. Uses visible text to identify elements instead of CSS selectors for improved reliability.',
@@ -824,6 +835,9 @@ async def _convert_step_to_semantic(step, semantic_mapping, browser, simulate_in
 		semantic_step['selectedText'] = step['selectedText']
 	elif step_type == 'keypress' and 'key' in step:
 		semantic_step['key'] = step['key']
+
+	if step.get('url'):
+		semantic_step['url'] = step['url']
 
 	# Optionally simulate the interaction to keep the page state accurate for subsequent steps
 	if simulate_interactions and browser:

@@ -17,6 +17,7 @@ from workflow_use.schema.views import (
 	InputStep,
 	KeyPressStep,
 	NavigationStep,
+	PageExtractionStep,
 	ScrollStep,
 	SelectChangeStep,
 	WorkflowStep,
@@ -211,7 +212,42 @@ class SemanticWorkflowExecutor:
 		"""Refresh the semantic mapping for the current page."""
 		page = await self.browser.get_current_page()
 		self.current_mapping = await self.semantic_extractor.extract_semantic_mapping(page)
+		if self.current_mapping is None:
+			self.current_mapping = {}
 		logger.info(f'Refreshed semantic mapping with {len(self.current_mapping)} elements')
+
+	async def _ensure_step_page_url(self, step: WorkflowStep) -> None:
+		"""Navigate to the URL recorded with this step when replay drifted (e.g. SPA hash routes)."""
+		recorded_url = getattr(step, 'url', None)
+		if not recorded_url or not str(recorded_url).strip():
+			return
+		page = await self.browser.get_current_page()
+		current_url = await page.get_url()
+		if self._urls_equivalent_for_replay(current_url, str(recorded_url)):
+			return
+		logger.info(f'Navigating to recorded step URL before interaction: {recorded_url}')
+		await page.goto(str(recorded_url))
+		await asyncio.sleep(2)
+		try:
+			await page.wait_for_selector('input, button, form, textarea, select, a[href]', timeout=10000)
+		except Exception:
+			pass
+		await self._refresh_semantic_mapping()
+
+	@staticmethod
+	def _urls_equivalent_for_replay(current_url: str, recorded_url: str) -> bool:
+		from urllib.parse import urlparse
+
+		current = urlparse(current_url)
+		recorded = urlparse(recorded_url)
+		if current.netloc != recorded.netloc:
+			return False
+		if current.path.rstrip('/') != recorded.path.rstrip('/'):
+			return False
+		# Same host/path but different hash (duckduckgo.com/ vs duckduckgo.com/#chat)
+		if (recorded.fragment or '') != (current.fragment or ''):
+			return False
+		return True
 
 		# Print detailed mapping for debugging
 		if logger.isEnabledFor(logging.DEBUG):
@@ -742,6 +778,7 @@ class SemanticWorkflowExecutor:
 
 	async def execute_click_step(self, step: ClickStep) -> ActionResult:
 		"""Execute click step using semantic mapping with improved selector strategies."""
+		await self._ensure_step_page_url(step)
 		page = await self.browser.get_current_page()
 
 		# DEBUG: Check what attributes the step has
@@ -1879,6 +1916,8 @@ class SemanticWorkflowExecutor:
 			return await self.execute_scroll_step(step)
 		elif step.type == 'button':
 			return await self.execute_button_step(step)
+		elif isinstance(step, PageExtractionStep) or step.type == 'extract_page_content':
+			return await self.execute_page_extraction_step(step)
 		elif isinstance(step, ExtractStep):
 			return await self.execute_extract_step(step)
 		elif step.type == 'go_back':
@@ -2583,26 +2622,70 @@ class SemanticWorkflowExecutor:
 			logger.warning(f'Navigation verification failed: {e}')
 			return False
 
+	async def _basic_page_extraction(self, goal: str) -> ActionResult:
+		page = await self.browser.get_current_page()
+		page_text = await page.evaluate('() => document.body.innerText')
+		extracted_data = {
+			'extraction_goal': goal,
+			'page_url': await page.get_url(),
+			'page_title': await page.get_title(),
+			'page_text_preview': page_text[:1000] + '...' if len(page_text) > 1000 else page_text,
+			'extraction_method': 'basic',
+		}
+		msg = f'Basic extraction: {goal}'
+		logger.info(msg)
+		return ActionResult(extracted_content=msg, include_in_memory=True, extracted_data=extracted_data)
+
+	async def execute_page_extraction_step(self, step: PageExtractionStep) -> ActionResult:
+		"""Execute extract_page_content (schema-required terminal step)."""
+		await self._ensure_step_page_url(step)
+		goal = step.goal
+		page = await self.browser.get_current_page()
+		try:
+			if not self.page_extraction_llm:
+				logger.warning('No page_extraction_llm provided - using basic content extraction')
+				return await self._basic_page_extraction(goal)
+			import markdownify
+
+			logger.info(f'Starting AI page extraction: {goal}')
+			html_content = await page.evaluate('() => document.documentElement.outerHTML')
+			markdown_content = markdownify.markdownify(
+				html_content, strip=['a', 'img', 'script', 'style', 'nav', 'header', 'footer']
+			)
+			max_content_length = 50000
+			if len(markdown_content) > max_content_length:
+				markdown_content = (
+					markdown_content[: max_content_length // 2]
+					+ '\n\n... [CONTENT TRUNCATED] ...\n\n'
+					+ markdown_content[-(max_content_length // 2) :]
+				)
+			formatted_prompt = (
+				f'Extract information for this goal: {goal}\n\n'
+				f'URL: {await page.get_url()}\nTitle: {await page.get_title()}\n\n{markdown_content}'
+			)
+			llm_response = await self.page_extraction_llm.ainvoke(formatted_prompt)
+			extracted_content = llm_response.content if hasattr(llm_response, 'content') else str(llm_response)
+			extracted_data = {
+				'extraction_goal': goal,
+				'page_url': await page.get_url(),
+				'page_title': await page.get_title(),
+				'extracted_content': extracted_content,
+				'extraction_method': 'AI-powered',
+			}
+			msg = f'Page extraction complete: {goal}'
+			return ActionResult(extracted_content=msg, include_in_memory=True, extracted_data=extracted_data)
+		except Exception as e:
+			logger.warning(f'Page extraction failed ({e}); using basic fallback')
+			return await self._basic_page_extraction(goal)
+
 	async def execute_extract_step(self, step: ExtractStep) -> ActionResult:
 		"""Execute AI extraction step using LLM for intelligent content extraction."""
 		page = await self.browser.get_current_page()
 
 		try:
 			if not self.page_extraction_llm:
-				# Fallback to basic extraction if no LLM is available
 				logger.warning('No page_extraction_llm provided - using basic content extraction')
-				page_text = await page.evaluate('() => document.body.innerText')
-				extracted_data = {
-					'extraction_goal': step.extractionGoal,
-					'page_url': await page.get_url(),
-					'page_title': await page.get_title(),
-					'page_text_preview': page_text[:1000] + '...' if len(page_text) > 1000 else page_text,
-					'note': 'Basic extraction - no LLM available for intelligent extraction',
-				}
-
-				msg = f'🤖 Basic extraction: {step.extractionGoal}'
-				logger.info(msg)
-				return ActionResult(extracted_content=msg, include_in_memory=True, extracted_data=extracted_data)
+				return await self._basic_page_extraction(step.extractionGoal)
 
 			# AI-powered extraction using LLM
 			import markdownify

@@ -93,6 +93,7 @@ OVERLAY_FILES=(
   scripts/replay.sh
   scripts/ec2-verify-preflight.sh
   scripts/ec2-test-record-start.sh
+  scripts/ec2-test-replay.sh
   workflow-use/extension/src/lib/utils.ts
 )
 

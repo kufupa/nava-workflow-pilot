@@ -55,3 +55,7 @@ echo "=== pilot preflight PASSED ==="
 echo "[bonus] record path start test"
 bash "$ROOT/scripts/ec2-test-record-start.sh"
 echo "=== record start test PASSED ==="
+
+echo "[bonus] replay 3y_srn4b workflow"
+bash "$ROOT/scripts/ec2-test-replay.sh" "workflow-use/workflows/tmp/3y_srn4b.semantic.workflow.yaml"
+echo "=== replay test PASSED ==="
