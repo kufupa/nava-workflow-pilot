@@ -164,7 +164,7 @@ run_setup() {
 run_preflight() {
   echo "=== [3] ec2-verify-preflight ==="
   local out status
-  out="$(send_ssm "Pilot preflight verify" 900 \
+  out="$(send_ssm "Pilot preflight verify" 1800 \
     "sudo -u ubuntu bash -lc 'cd ${REMOTE_PILOT} && bash scripts/ec2-verify-preflight.sh'"
   )"
   echo "$out"

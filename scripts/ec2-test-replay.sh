@@ -55,6 +55,8 @@ for s in rec.get('steps') or []:
     st = {'description': s.get('description') or f"{s.get('type')} step", 'type': s.get('type')}
     if s.get('url'):
         st['url'] = s['url']
+    if s.get('type') == 'click':
+        st['wait_time'] = 2
     if s.get('target_text'):
         st['target_text'] = s['target_text']
     elif s.get('elementText'):

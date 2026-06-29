@@ -908,6 +908,14 @@ class SemanticWorkflowExecutor:
 				selector_to_use = f'xpath={step.xpath}'
 				logger.info(f'Falling back to XPath selector: {step.xpath}')
 			else:
+				if target_identifier and await self._click_element_by_text_direct(target_identifier):
+					wait_s = step.wait_time if step.wait_time is not None else 2
+					if wait_s > 0:
+						await asyncio.sleep(wait_s)
+					await self._refresh_semantic_mapping()
+					msg = f"🖱️ Clicked element by direct text fallback: '{target_identifier}'"
+					logger.info(msg)
+					return ActionResult(extracted_content=msg, include_in_memory=True)
 				# Enhanced error message with debugging info
 				available_texts = list(self.current_mapping.keys())[:15]  # Show first 15 available options
 				error_msg = f"No selector available for click step: '{target_identifier or step.description}'"
